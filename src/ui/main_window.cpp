@@ -1,4 +1,8 @@
 #include <QDockWidget>
+#include <QPlainTextEdit>
+#include <QTabWidget>
+#include <QToolBar>
+#include <QToolButton>
 
 #include "main_window.hpp"
 
@@ -24,6 +28,49 @@ MainWindow::MainWindow(QWidget* parent)
 
     loggerDockWidget->setWidget(qspdlog);
     addDockWidget(Qt::BottomDockWidgetArea, loggerDockWidget);
+
+    QDockWidget* codeEditor = new QDockWidget("Code editor", this);
+    QTabWidget* tabWidget = new QTabWidget(codeEditor);
+    codeEditor->setWidget(tabWidget);
+    addDockWidget(Qt::RightDockWidgetArea, codeEditor);
+
+    QPlainTextEdit* vertexShaderEditor = new QPlainTextEdit(this);
+    vertexShaderEditor->setPlainText(
+        "#version 330 core\n"
+        "layout (location = 0) in vec3 aPos;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+        "}\n");
+    tabWidget->addTab(vertexShaderEditor, "Vertex shader");
+
+    QPlainTextEdit* fragmentShaderEditor = new QPlainTextEdit(this);
+    fragmentShaderEditor->setPlainText(
+        "#version 330 core\n"
+        "out vec4 FragColor;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+        "}\n");
+    tabWidget->addTab(fragmentShaderEditor, "Fragment shader");
+
+    QToolBar* toolBar = new QToolBar(this);
+    addToolBar(toolBar);
+
+    QToolButton* compileButton = new QToolButton(toolBar);
+    compileButton->setText("Compile");
+    toolBar->addWidget(compileButton);
+
+    connect(compileButton,
+            &QToolButton::clicked,
+            [ view, vertexShaderEditor, fragmentShaderEditor ]()
+            {
+        view->recompileShaders(
+            vertexShaderEditor->toPlainText().toStdString(),
+            fragmentShaderEditor->toPlainText().toStdString());
+    });
 }
 
 MainWindow::~MainWindow() { }
