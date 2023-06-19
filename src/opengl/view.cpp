@@ -4,8 +4,9 @@
 #include "view.hpp"
 
 #include "logger.hpp"
+#include "texture.hpp"
 
-auto logger = get_logger("view");
+static auto logger = get_logger("opengl");
 
 View::View(QWidget* parent)
     : QOpenGLWidget(parent)
@@ -51,6 +52,29 @@ void View::recompileShaders(std::string_view vertex, std::string_view fragment)
     update();
 }
 
+void View::addTexture(Texture texture)
+{
+    logger->info("Adding texture: {}", texture.name());
+    auto* f = getGLFunctions();
+
+    unsigned int tex;
+    f->glGenTextures(1, &tex);
+    f->glBindTexture(GL_TEXTURE_2D, tex);
+    f->glTexImage2D(GL_TEXTURE_2D,
+                    0,
+                    GL_RGBA,
+                    texture.width(),
+                    texture.height(),
+                    0,
+                    GL_RGBA,
+                    GL_UNSIGNED_BYTE,
+                    texture.data());
+    f->glGenerateMipmap(GL_TEXTURE_2D);
+
+    _textures.emplace_back(tex, texture.name());
+    update();
+}
+
 void View::initializeGL()
 {
     logger->debug("Initializing OpenGL");
@@ -58,27 +82,50 @@ void View::initializeGL()
     f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     // rectangle points
-    float points[] = {
-        -0.7f, -0.7f, 0.0f, // bottom left
-        0.7f,  -0.7f, 0.0f, // bottom right
-        0.7f,  0.7f,  0.0f, // top right
-
-        0.7f,  0.7f,  0.0f, // top right
-        -0.7f, 0.7f,  0.0f, // top left
-        -0.7f, -0.7f, 0.0f  // bottom left
+    std::array<float, 32> points = {
+        0.7f,  0.7f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
+        0.7f,  -0.7f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+        -0.7f, -0.7f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+        -0.7f, 0.7f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, // top left
     };
+
+    std::array<int, 6> indices = { 0, 1, 3, 1, 2, 3 };
 
     f->glGenVertexArrays(1, &_vao);
     f->glGenBuffers(1, &_vbo);
+    f->glGenBuffers(1, &_ebo);
 
     f->glBindVertexArray(_vao);
 
     f->glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-    f->glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+    f->glBufferData(GL_ARRAY_BUFFER,
+                    sizeof(float) * points.size(),
+                    points.data(),
+                    GL_STATIC_DRAW);
+
+    f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+    f->glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                    sizeof(int) * indices.size(),
+                    indices.data(),
+                    GL_STATIC_DRAW);
 
     f->glVertexAttribPointer(
-        0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+        0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), nullptr);
     f->glEnableVertexAttribArray(0);
+    f->glVertexAttribPointer(1,
+                             3,
+                             GL_FLOAT,
+                             GL_FALSE,
+                             8 * sizeof(float),
+                             (void*)(3 * sizeof(float)));
+    f->glEnableVertexAttribArray(1);
+    f->glVertexAttribPointer(2,
+                             2,
+                             GL_FLOAT,
+                             GL_FALSE,
+                             8 * sizeof(float),
+                             (void*)(6 * sizeof(float)));
+    f->glEnableVertexAttribArray(2);
 }
 
 void View::resizeGL(int w, int h)
@@ -95,8 +142,14 @@ void View::paintGL()
     f->glClear(GL_COLOR_BUFFER_BIT);
 
     f->glUseProgram(_shaderProgram);
+
+    if (!_textures.empty())
+    {
+        f->glBindTexture(GL_TEXTURE_2D, std::get<0>(_textures[ 0 ]));
+    }
+
     f->glBindVertexArray(_vao);
-    f->glDrawArrays(GL_TRIANGLES, 0, 6);
+    f->glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
 QOpenGLFunctions_3_3_Core* View::getGLFunctions()

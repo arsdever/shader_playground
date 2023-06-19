@@ -1,5 +1,5 @@
-set(HEADERS view.hpp)
-set(SOURCES view.cpp)
+set(HEADERS view.hpp texture.hpp)
+set(SOURCES view.cpp texture.cpp)
 
 add_library(sp_opengl STATIC ${HEADERS} ${SOURCES})
 add_library(sp::opengl ALIAS sp_opengl)

@@ -1,15 +1,22 @@
 #include <QDockWidget>
+#include <QFileDialog>
 #include <QPlainTextEdit>
 #include <QTabWidget>
 #include <QToolBar>
 #include <QToolButton>
+#include <qfiledialog.h>
 
 #include "main_window.hpp"
 
+#include "logger.hpp"
 #include "qspdlog/qspdlog.hpp"
+#include "texture.hpp"
 #include "view.hpp"
 #include <spdlog/sinks/sink.h>
 #include <spdlog/spdlog.h>
+
+static auto logger = get_logger("ui");
+static unsigned int textureCounter = 0;
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -76,6 +83,37 @@ MainWindow::MainWindow(QWidget* parent)
         catch (std::exception& e)
         {
         }
+    });
+
+    QToolButton* loadTexture = new QToolButton(toolBar);
+    loadTexture->setText("Load texture");
+    toolBar->addWidget(loadTexture);
+
+    connect(loadTexture,
+            &QToolButton::clicked,
+            [ this, view ]()
+            {
+        logger->info("Loading a texture");
+        QString textureFileName = QFileDialog::getOpenFileName(
+            this, "Select texture", "", "Images (*.png *.jpg)");
+        if (textureFileName.isEmpty())
+        {
+            logger->info("No texture selected");
+            return;
+        }
+
+        QImage textureImage(textureFileName);
+        if (textureImage.isNull())
+        {
+            logger->error("Failed to load selected image");
+            return;
+        }
+
+        Texture texture = Texture::fromQImage(textureImage);
+        texture.setName(fmt::format("tex_{}", textureCounter));
+        logger->info("Loaded texture with id {}", textureCounter++);
+
+        view->addTexture(std::move(texture));
     });
 }
 
