@@ -67,9 +67,15 @@ MainWindow::MainWindow(QWidget* parent)
             &QToolButton::clicked,
             [ view, vertexShaderEditor, fragmentShaderEditor ]()
             {
-        view->recompileShaders(
-            vertexShaderEditor->toPlainText().toStdString(),
-            fragmentShaderEditor->toPlainText().toStdString());
+        try
+        {
+            view->recompileShaders(
+                vertexShaderEditor->toPlainText().toStdString(),
+                fragmentShaderEditor->toPlainText().toStdString());
+        }
+        catch (std::exception& e)
+        {
+        }
     });
 }
 

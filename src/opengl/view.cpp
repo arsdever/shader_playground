@@ -48,6 +48,7 @@ void View::recompileShaders(std::string_view vertex, std::string_view fragment)
 
     f->glDeleteShader(vertexShader);
     f->glDeleteShader(fragmentShader);
+    update();
 }
 
 void View::initializeGL()
@@ -56,10 +57,15 @@ void View::initializeGL()
     auto* f = getGLFunctions();
     f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+    // rectangle points
     float points[] = {
-        -0.5f, -0.5f, 0.0f, // bottom left
-        0.5f,  -0.5f, 0.0f, // bottom right
-        0.0f,  0.5f,  0.0f  // top
+        -0.7f, -0.7f, 0.0f, // bottom left
+        0.7f,  -0.7f, 0.0f, // bottom right
+        0.7f,  0.7f,  0.0f, // top right
+
+        0.7f,  0.7f,  0.0f, // top right
+        -0.7f, 0.7f,  0.0f, // top left
+        -0.7f, -0.7f, 0.0f  // bottom left
     };
 
     f->glGenVertexArrays(1, &_vao);
@@ -90,7 +96,7 @@ void View::paintGL()
 
     f->glUseProgram(_shaderProgram);
     f->glBindVertexArray(_vao);
-    f->glDrawArrays(GL_TRIANGLES, 0, 3);
+    f->glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 QOpenGLFunctions_3_3_Core* View::getGLFunctions()
