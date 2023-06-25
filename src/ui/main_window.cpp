@@ -122,13 +122,24 @@ MainWindow::MainWindow(QWidget* parent)
               fragmentFile = _fragmentFile,
               fragmentShaderEditor ]()
             {
-        vertexFile->open(QIODevice::WriteOnly);
-        vertexFile->write(vertexShaderEditor->toPlainText().toUtf8());
-        vertexFile->close();
+        vertexFile->open(QIODevice::ReadOnly);
+        if (vertexShaderEditor->toPlainText().toUtf8() != vertexFile->readAll())
+        {
+            vertexFile->close();
+            vertexFile->open(QIODevice::WriteOnly);
+            vertexFile->write(vertexShaderEditor->toPlainText().toUtf8());
+            vertexFile->close();
+        }
 
-        fragmentFile->open(QIODevice::WriteOnly);
-        fragmentFile->write(fragmentShaderEditor->toPlainText().toUtf8());
-        fragmentFile->close();
+        fragmentFile->open(QIODevice::ReadOnly);
+        if (fragmentShaderEditor->toPlainText().toUtf8() !=
+            fragmentFile->readAll())
+        {
+            fragmentFile->close();
+            fragmentFile->open(QIODevice::WriteOnly);
+            fragmentFile->write(fragmentShaderEditor->toPlainText().toUtf8());
+            fragmentFile->close();
+        }
     });
 
     QToolButton* load = new QToolButton(toolBar);
