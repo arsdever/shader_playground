@@ -5,6 +5,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <qfiledialog.h>
+#include <qtoolbutton.h>
 
 #include "main_window.hpp"
 
@@ -20,6 +21,8 @@ static unsigned int textureCounter = 0;
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
+    , _vertexFile(new QFile("./default.vert"))
+    , _fragmentFile(new QFile("./default.frag"))
 {
     View* view = new View(this);
     view->setFixedSize(800, 600);
@@ -41,27 +44,19 @@ MainWindow::MainWindow(QWidget* parent)
     codeEditor->setWidget(tabWidget);
     addDockWidget(Qt::RightDockWidgetArea, codeEditor);
 
+    _vertexFile->open(QIODevice::ReadOnly);
+    _fragmentFile->open(QIODevice::ReadOnly);
+
     QPlainTextEdit* vertexShaderEditor = new QPlainTextEdit(this);
-    vertexShaderEditor->setPlainText(
-        "#version 330 core\n"
-        "layout (location = 0) in vec3 aPos;\n"
-        "\n"
-        "void main()\n"
-        "{\n"
-        "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-        "}\n");
+    vertexShaderEditor->setPlainText(_vertexFile->readAll());
     tabWidget->addTab(vertexShaderEditor, "Vertex shader");
 
     QPlainTextEdit* fragmentShaderEditor = new QPlainTextEdit(this);
-    fragmentShaderEditor->setPlainText(
-        "#version 330 core\n"
-        "out vec4 FragColor;\n"
-        "\n"
-        "void main()\n"
-        "{\n"
-        "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-        "}\n");
+    fragmentShaderEditor->setPlainText(_fragmentFile->readAll());
     tabWidget->addTab(fragmentShaderEditor, "Fragment shader");
+
+    _vertexFile->close();
+    _fragmentFile->close();
 
     QToolBar* toolBar = new QToolBar(this);
     addToolBar(toolBar);
@@ -114,6 +109,57 @@ MainWindow::MainWindow(QWidget* parent)
         logger->info("Loaded texture with id {}", textureCounter++);
 
         view->addTexture(std::move(texture));
+    });
+
+    QToolButton* save = new QToolButton(toolBar);
+    save->setText("Save");
+    toolBar->addWidget(save);
+
+    connect(save,
+            &QToolButton::clicked,
+            [ vertexFile = _vertexFile,
+              vertexShaderEditor,
+              fragmentFile = _fragmentFile,
+              fragmentShaderEditor ]()
+            {
+        vertexFile->open(QIODevice::ReadOnly);
+        if (vertexShaderEditor->toPlainText().toUtf8() != vertexFile->readAll())
+        {
+            vertexFile->close();
+            vertexFile->open(QIODevice::WriteOnly);
+            vertexFile->write(vertexShaderEditor->toPlainText().toUtf8());
+            vertexFile->close();
+        }
+
+        fragmentFile->open(QIODevice::ReadOnly);
+        if (fragmentShaderEditor->toPlainText().toUtf8() !=
+            fragmentFile->readAll())
+        {
+            fragmentFile->close();
+            fragmentFile->open(QIODevice::WriteOnly);
+            fragmentFile->write(fragmentShaderEditor->toPlainText().toUtf8());
+            fragmentFile->close();
+        }
+    });
+
+    QToolButton* load = new QToolButton(toolBar);
+    load->setText("Load");
+    toolBar->addWidget(load);
+
+    connect(load,
+            &QToolButton::clicked,
+            [ vertexFile = _vertexFile,
+              vertexShaderEditor,
+              fragmentFile = _fragmentFile,
+              fragmentShaderEditor ]()
+            {
+        vertexFile->open(QIODevice::ReadOnly);
+        vertexShaderEditor->setPlainText(vertexFile->readAll());
+        vertexFile->close();
+
+        fragmentFile->open(QIODevice::ReadOnly);
+        fragmentShaderEditor->setPlainText(fragmentFile->readAll());
+        fragmentFile->close();
     });
 }
 
