@@ -28,7 +28,7 @@ Texture Texture::fromQImage(QImage image)
 {
     logger->info("Creating texture from QImage");
     logger->debug("Image size: {}x{}", image.width(), image.height());
-    logger->debug("Image format: {}", image.format());
+    logger->debug("Image format: {}", static_cast<int>(image.format()));
 
     Texture texture;
     texture._width = image.width();
