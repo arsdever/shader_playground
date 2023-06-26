@@ -122,10 +122,11 @@ MainWindow::MainWindow(QWidget* parent)
     save->setText("Save");
     toolBar->addWidget(save);
 
-    connect(save,
-            &QToolButton::clicked,
-            [ this, vertexShaderEditor, fragmentShaderEditor, vertexDataEditor ]()
-            {
+    connect(
+        save,
+        &QToolButton::clicked,
+        [ this, vertexShaderEditor, fragmentShaderEditor, vertexDataEditor ]()
+        {
         _vertexFile->open(QIODevice::ReadOnly);
         if (vertexShaderEditor->toPlainText().toUtf8() !=
             _vertexFile->readAll())
@@ -147,14 +148,15 @@ MainWindow::MainWindow(QWidget* parent)
         }
 
         _vertexDataFile->open(QIODevice::ReadOnly);
-        if (vertexDataEditor->toPlainText().toUtf8() != _vertexDataFile->readAll())
+        if (vertexDataEditor->toPlainText().toUtf8() !=
+            _vertexDataFile->readAll())
         {
             _vertexDataFile->close();
             _vertexDataFile->open(QIODevice::WriteOnly);
             _vertexDataFile->write(vertexDataEditor->toPlainText().toUtf8());
             _vertexDataFile->close();
         }
-    });
+        });
 
     QToolButton* load = new QToolButton(toolBar);
     load->setText("Load");
@@ -163,7 +165,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(
         load,
         &QToolButton::clicked,
-        [ this, vertexShaderEditor, fragmentShaderEditor, vertexDataEditor, view ]()
+        [ this, vertexShaderEditor, fragmentShaderEditor, vertexDataEditor ]()
         {
         _vertexFile->open(QIODevice::ReadOnly);
         vertexShaderEditor->setPlainText(_vertexFile->readAll());
