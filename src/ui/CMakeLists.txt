@@ -7,5 +7,5 @@ target_include_directories(sp_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-target_link_libraries(sp_ui PUBLIC Qt::Widgets sp::opengl qspdlog::lib
+target_link_libraries(sp_ui PUBLIC Qt::Widgets sp::opengl qcodeeditor qspdlog::lib
                                    qspdlog::interface)

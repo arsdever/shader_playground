@@ -9,6 +9,7 @@
 
 #include "main_window.hpp"
 
+#include "qcodeeditor.hpp"
 #include "logger.hpp"
 #include "qspdlog/qspdlog.hpp"
 #include "texture.hpp"
@@ -49,15 +50,15 @@ MainWindow::MainWindow(QWidget* parent)
     _fragmentFile->open(QIODevice::ReadOnly);
     _vertexDataFile->open(QIODevice::ReadOnly);
 
-    QPlainTextEdit* vertexShaderEditor = new QPlainTextEdit(this);
+    QTextEdit* vertexShaderEditor = new QCodeEditor(this);
     vertexShaderEditor->setPlainText(_vertexFile->readAll());
     tabWidget->addTab(vertexShaderEditor, "Vertex shader");
 
-    QPlainTextEdit* fragmentShaderEditor = new QPlainTextEdit(this);
+    QTextEdit* fragmentShaderEditor = new QCodeEditor(this);
     fragmentShaderEditor->setPlainText(_fragmentFile->readAll());
     tabWidget->addTab(fragmentShaderEditor, "Fragment shader");
 
-    QPlainTextEdit* vertexDataEditor = new QPlainTextEdit(this);
+    QTextEdit* vertexDataEditor = new QCodeEditor(this);
     vertexDataEditor->setPlainText(_vertexDataFile->readAll());
     tabWidget->addTab(vertexDataEditor, "Vertex data");
 

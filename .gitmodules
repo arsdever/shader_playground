@@ -1,3 +1,6 @@
 [submodule "thirdparty/qspdlog"]
 	path = thirdparty/qspdlog
 	url = https://github.com/arsdever/qspdlog
+[submodule "thirdparty/qcodeeditor"]
+	path = thirdparty/qcodeeditor
+	url = https://github.com/arsdever/qcodeeditor
