@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , _vertexFile(new QFile("./default.vert"))
     , _fragmentFile(new QFile("./default.frag"))
+    , _vertexDataFile(new QFile("./vertex.data"))
 {
     View* view = new View(this);
     view->setFixedSize(800, 600);
@@ -55,8 +56,13 @@ MainWindow::MainWindow(QWidget* parent)
     fragmentShaderEditor->setPlainText(_fragmentFile->readAll());
     tabWidget->addTab(fragmentShaderEditor, "Fragment shader");
 
+    QPlainTextEdit* vertexDataEditor = new QPlainTextEdit(this);
+    vertexDataEditor->setPlainText(_vertexDataFile->readAll());
+    tabWidget->addTab(vertexDataEditor, "Vertex data");
+
     _vertexFile->close();
     _fragmentFile->close();
+    _vertexDataFile->close();
 
     QToolBar* toolBar = new QToolBar(this);
     addToolBar(toolBar);
@@ -117,28 +123,35 @@ MainWindow::MainWindow(QWidget* parent)
 
     connect(save,
             &QToolButton::clicked,
-            [ vertexFile = _vertexFile,
-              vertexShaderEditor,
-              fragmentFile = _fragmentFile,
-              fragmentShaderEditor ]()
+            [ this, vertexShaderEditor, fragmentShaderEditor, vertexDataEditor ]()
             {
-        vertexFile->open(QIODevice::ReadOnly);
-        if (vertexShaderEditor->toPlainText().toUtf8() != vertexFile->readAll())
+        _vertexFile->open(QIODevice::ReadOnly);
+        if (vertexShaderEditor->toPlainText().toUtf8() !=
+            _vertexFile->readAll())
         {
-            vertexFile->close();
-            vertexFile->open(QIODevice::WriteOnly);
-            vertexFile->write(vertexShaderEditor->toPlainText().toUtf8());
-            vertexFile->close();
+            _vertexFile->close();
+            _vertexFile->open(QIODevice::WriteOnly);
+            _vertexFile->write(vertexShaderEditor->toPlainText().toUtf8());
+            _vertexFile->close();
         }
 
-        fragmentFile->open(QIODevice::ReadOnly);
+        _fragmentFile->open(QIODevice::ReadOnly);
         if (fragmentShaderEditor->toPlainText().toUtf8() !=
-            fragmentFile->readAll())
+            _fragmentFile->readAll())
         {
-            fragmentFile->close();
-            fragmentFile->open(QIODevice::WriteOnly);
-            fragmentFile->write(fragmentShaderEditor->toPlainText().toUtf8());
-            fragmentFile->close();
+            _fragmentFile->close();
+            _fragmentFile->open(QIODevice::WriteOnly);
+            _fragmentFile->write(fragmentShaderEditor->toPlainText().toUtf8());
+            _fragmentFile->close();
+        }
+
+        _vertexDataFile->open(QIODevice::ReadOnly);
+        if (vertexDataEditor->toPlainText().toUtf8() != _vertexDataFile->readAll())
+        {
+            _vertexDataFile->close();
+            _vertexDataFile->open(QIODevice::WriteOnly);
+            _vertexDataFile->write(vertexDataEditor->toPlainText().toUtf8());
+            _vertexDataFile->close();
         }
     });
 
@@ -146,21 +159,74 @@ MainWindow::MainWindow(QWidget* parent)
     load->setText("Load");
     toolBar->addWidget(load);
 
-    connect(load,
-            &QToolButton::clicked,
-            [ vertexFile = _vertexFile,
-              vertexShaderEditor,
-              fragmentFile = _fragmentFile,
-              fragmentShaderEditor ]()
-            {
-        vertexFile->open(QIODevice::ReadOnly);
-        vertexShaderEditor->setPlainText(vertexFile->readAll());
-        vertexFile->close();
+    connect(
+        load,
+        &QToolButton::clicked,
+        [ this, vertexShaderEditor, fragmentShaderEditor, vertexDataEditor, view ]()
+        {
+        _vertexFile->open(QIODevice::ReadOnly);
+        vertexShaderEditor->setPlainText(_vertexFile->readAll());
+        _vertexFile->close();
 
-        fragmentFile->open(QIODevice::ReadOnly);
-        fragmentShaderEditor->setPlainText(fragmentFile->readAll());
-        fragmentFile->close();
-    });
+        _fragmentFile->open(QIODevice::ReadOnly);
+        fragmentShaderEditor->setPlainText(_fragmentFile->readAll());
+        _fragmentFile->close();
+
+        _vertexDataFile->open(QIODevice::ReadOnly);
+        vertexDataEditor->setPlainText(_vertexDataFile->readAll());
+        _vertexDataFile->close();
+        });
+
+    QToolButton* updateVertexData = new QToolButton(toolBar);
+    updateVertexData->setText("Update vertex data");
+    toolBar->addWidget(updateVertexData);
+
+    connect(updateVertexData,
+            &QToolButton::clicked,
+            [ this, view, vertexDataEditor ]()
+            { parseAndSetVertexData(vertexDataEditor->toPlainText(), view); });
 }
 
 MainWindow::~MainWindow() { }
+
+void MainWindow::parseAndSetVertexData(QString vertexData, View* view)
+{
+    QStringList vertexDataList = vertexData.split("\n\n");
+    QStringList vertices = vertexDataList[ 0 ].split(",");
+    QStringList vertexSizes = vertexDataList[ 1 ].split(",");
+    QStringList indices = vertexDataList[ 2 ].split(",");
+
+    std::vector<float> verticesVector;
+    std::vector<size_t> vertexSizesVector;
+    std::vector<unsigned int> indicesVector;
+
+    for (const QString& vertex : vertices)
+    {
+        verticesVector.push_back(vertex.toFloat());
+    }
+
+    for (const QString& vertexSize : vertexSizes)
+    {
+        vertexSizesVector.push_back(vertexSize.toUInt());
+    }
+
+    for (const QString& index : indices)
+    {
+        indicesVector.push_back(index.toUInt());
+    }
+
+    size_t sum = 0;
+    for (size_t vertexSize : vertexSizesVector)
+    {
+        sum += vertexSize;
+    }
+
+    if (verticesVector.size() % sum != 0)
+    {
+        logger->error("Vertex count is not an integer: there may be a "
+                      "missing attribute");
+        return;
+    }
+
+    view->setVertexData(verticesVector, vertexSizesVector, indicesVector);
+}

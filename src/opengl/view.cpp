@@ -74,22 +74,63 @@ void View::addTexture(Texture texture)
     _textures.emplace_back(tex, texture.name());
     update();
 }
+void View::setVertexData(std::vector<float> vertices,
+                         std::vector<size_t> vertexSizes,
+                         std::vector<unsigned int> indices)
+{
+    _vertices = std::move(vertices);
+    _vertexSizes = std::move(vertexSizes);
+    _indices = std::move(indices);
+
+    auto* f = getGLFunctions();
+
+    f->glBindVertexArray(_vao);
+    f->glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+
+    f->glBufferData(GL_ARRAY_BUFFER,
+                    sizeof(float) * _vertices.size(),
+                    _vertices.data(),
+                    GL_STATIC_DRAW);
+
+    f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+    f->glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                    sizeof(int) * _indices.size(),
+                    _indices.data(),
+                    GL_STATIC_DRAW);
+
+    size_t sum = 0;
+    for (auto size : _vertexSizes)
+    {
+        sum += size;
+    }
+
+    size_t offset = 0;
+    for (size_t i = 0; i < _vertexSizes.size(); ++i)
+    {
+        // TODO: Old attributes must be cleared
+        f->glVertexAttribPointer(i,
+                                 _vertexSizes[ i ],
+                                 GL_FLOAT,
+                                 GL_FALSE,
+                                 sum * sizeof(float),
+                                 (void*)(offset * sizeof(float)));
+        offset += _vertexSizes[ i ];
+        f->glEnableVertexAttribArray(i);
+    }
+    update();
+}
+
+std::vector<float> View::vertices() const { return _vertices; }
+
+std::vector<size_t> View::vertexSizes() const { return _vertexSizes; }
+
+std::vector<unsigned int> View::indices() const { return _indices; }
 
 void View::initializeGL()
 {
     logger->debug("Initializing OpenGL");
     auto* f = getGLFunctions();
     f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    // rectangle points
-    std::array<float, 32> points = {
-        0.7f,  0.7f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
-        0.7f,  -0.7f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
-        -0.7f, -0.7f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-        -0.7f, 0.7f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, // top left
-    };
-
-    std::array<int, 6> indices = { 0, 1, 3, 1, 2, 3 };
 
     f->glGenVertexArrays(1, &_vao);
     f->glGenBuffers(1, &_vbo);
@@ -99,14 +140,14 @@ void View::initializeGL()
 
     f->glBindBuffer(GL_ARRAY_BUFFER, _vbo);
     f->glBufferData(GL_ARRAY_BUFFER,
-                    sizeof(float) * points.size(),
-                    points.data(),
+                    sizeof(float) * _vertices.size(),
+                    _vertices.data(),
                     GL_STATIC_DRAW);
 
     f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
     f->glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                    sizeof(int) * indices.size(),
-                    indices.data(),
+                    sizeof(int) * _indices.size(),
+                    _indices.data(),
                     GL_STATIC_DRAW);
 
     f->glVertexAttribPointer(
@@ -149,7 +190,7 @@ void View::paintGL()
     }
 
     f->glBindVertexArray(_vao);
-    f->glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+    f->glDrawElements(GL_TRIANGLES, _indices.size(), GL_UNSIGNED_INT, nullptr);
 }
 
 QOpenGLFunctions_3_3_Core* View::getGLFunctions()
