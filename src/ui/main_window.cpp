@@ -47,6 +47,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     _vertexFile->open(QIODevice::ReadOnly);
     _fragmentFile->open(QIODevice::ReadOnly);
+    _vertexDataFile->open(QIODevice::ReadOnly);
 
     QPlainTextEdit* vertexShaderEditor = new QPlainTextEdit(this);
     vertexShaderEditor->setPlainText(_vertexFile->readAll());
